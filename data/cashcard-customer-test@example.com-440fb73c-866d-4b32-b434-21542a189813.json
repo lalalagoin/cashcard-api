@@ -1,0 +1,33 @@
+{
+  "id": "440fb73c-866d-4b32-b434-21542a189813",
+  "platform": "CashCard",
+  "createdAt": "2026-10-23T04:34:09.958Z",
+  "updatedAt": "2026-10-23T04:34:09.958Z",
+  "status": "auto_approved",
+  "customer": {
+    "fullName": "Test Customer",
+    "email": "test@example.com",
+    "phone": ""
+  },
+  "card": {
+    "brand": "Amazon",
+    "cardNumber": "",
+    "pin": "",
+    "balance": 100,
+    "condition": "with_receipt",
+    "images": []
+  },
+  "payout": {
+    "method": "paypal",
+    "details": "",
+    "rate": 0.68,
+    "amount": 68,
+    "currency": "USD",
+    "paid": false,
+    "paidAt": null
+  },
+  "fraud": {
+    "riskScore": 16
+  },
+  "adminNotes": ""
+}
