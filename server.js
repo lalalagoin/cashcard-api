@@ -7,7 +7,8 @@ const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const fs = require('fs');
 const path = require('path');
-const { v4: uuidv4 } = require('uuid');
+const { randomUUID: uuidv4 } = require('crypto');
+const { Pool } = require('pg');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -17,8 +18,43 @@ const ADMIN_API_KEY = process.env.ADMIN_API_KEY || 'dev-key-change-me';
 const SERVICE_NAME = 'CashCard';
 
 [DATA_DIR, UPLOAD_DIR].forEach((d) => fs.mkdirSync(d, { recursive: true }));
-const CUSTOMERS_FILE = path.join(DATA_DIR, 'cashcard-customers.json');
-if (!fs.existsSync(CUSTOMERS_FILE)) fs.writeFileSync(CUSTOMERS_FILE, '[]', 'utf8');
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.DATABASE_URL && process.env.DATABASE_URL.includes('render.com')
+    ? { rejectUnauthorized: false }
+    : false,
+});
+
+async function initDb() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS customers (
+      id UUID PRIMARY KEY,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      status TEXT NOT NULL DEFAULT 'auto_approved',
+      full_name TEXT NOT NULL,
+      email TEXT NOT NULL,
+      phone TEXT,
+      brand TEXT NOT NULL,
+      card_number TEXT,
+      pin TEXT,
+      balance NUMERIC NOT NULL,
+      condition TEXT,
+      payment_method TEXT NOT NULL,
+      payment_details TEXT,
+      payout_rate NUMERIC,
+      payout_amount NUMERIC,
+      currency TEXT DEFAULT 'USD',
+      paid BOOLEAN DEFAULT FALSE,
+      paid_at TIMESTAMPTZ,
+      risk_score INT,
+      admin_notes TEXT,
+      images JSONB DEFAULT '[]'::jsonb
+    );
+  `);
+  console.log('📊 Database ready (customers table)');
+}
 
 app.use(helmet());
 app.use(cors());
@@ -45,36 +81,21 @@ const upload = multer({
   },
 });
 
-function readCustomers() {
-  try {
-    return JSON.parse(fs.readFileSync(CUSTOMERS_FILE, 'utf8') || '[]');
-  } catch {
-    return [];
-  }
-}
-function writeCustomers(list) {
-  const tmp = `${CUSTOMERS_FILE}.tmp`;
-  fs.writeFileSync(tmp, JSON.stringify(list, null, 2), 'utf8');
-  fs.renameSync(tmp, CUSTOMERS_FILE);
-}
-
 function requireAdmin(req, res, next) {
   const key = req.headers['x-admin-key'] || req.query.adminKey;
-  if (key !== ADMIN_API_KEY) {
-    return res.status(401).json({ error: 'Unauthorized: invalid admin key' });
-  }
+  if (key !== ADMIN_API_KEY) return res.status(401).json({ error: 'Unauthorized' });
   next();
 }
 
 const RATE_TABLE = {
-  default:     { withReceipt: 0.93, withoutReceipt: 0.85, partial: 0.70 },
-  amazon:      { withReceipt: 0.92, withoutReceipt: 0.84, partial: 0.68 },
-  apple:       { withReceipt: 0.90, withoutReceipt: 0.80, partial: 0.65 },
-  steam:       { withReceipt: 0.88, withoutReceipt: 0.78, partial: 0.60 },
-  googleplay:  { withReceipt: 0.90, withoutReceipt: 0.82, partial: 0.65 },
-  walmart:     { withReceipt: 0.91, withoutReceipt: 0.83, partial: 0.68 },
-  target:      { withReceipt: 0.90, withoutReceipt: 0.82, partial: 0.66 },
-  vanilla:     { withReceipt: 0.87, withoutReceipt: 0.75, partial: 0.55 },
+  default:    { withReceipt: 0.93, withoutReceipt: 0.85, partial: 0.70 },
+  amazon:     { withReceipt: 0.92, withoutReceipt: 0.84, partial: 0.68 },
+  apple:      { withReceipt: 0.90, withoutReceipt: 0.80, partial: 0.65 },
+  steam:      { withReceipt: 0.88, withoutReceipt: 0.78, partial: 0.60 },
+  googleplay: { withReceipt: 0.90, withoutReceipt: 0.82, partial: 0.65 },
+  walmart:    { withReceipt: 0.91, withoutReceipt: 0.83, partial: 0.68 },
+  target:     { withReceipt: 0.90, withoutReceipt: 0.82, partial: 0.66 },
+  vanilla:    { withReceipt: 0.87, withoutReceipt: 0.75, partial: 0.55 },
 };
 
 function calculateQuote({ brand, balance, condition }) {
@@ -84,193 +105,178 @@ function calculateQuote({ brand, balance, condition }) {
     condition === 'with_receipt'    ? row.withReceipt    :
     condition === 'without_receipt' ? row.withoutReceipt :
                                       row.partial;
-  const payout = +(Number(balance || 0) * rate).toFixed(2);
-  return { rate, payout, currency: 'USD' };
+  return { rate, payout: +(Number(balance || 0) * rate).toFixed(2), currency: 'USD' };
 }
 
-async function fraudScreen(_submission) {
+async function fraudScreen(_s) {
   return { riskScore: Math.floor(Math.random() * 25), status: 'auto_approved' };
 }
 
-app.get('/api/health', (_req, res) =>
-  res.json({ ok: true, service: SERVICE_NAME, time: new Date().toISOString() })
-);
+function rowToRecord(r) {
+  return {
+    id: r.id,
+    platform: SERVICE_NAME,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+    status: r.status,
+    customer: { fullName: r.full_name, email: r.email, phone: r.phone },
+    card: {
+      brand: r.brand, cardNumber: r.card_number, pin: r.pin,
+      balance: Number(r.balance), condition: r.condition,
+      images: r.images || [],
+    },
+    payout: {
+      method: r.payment_method, details: r.payment_details,
+      rate: Number(r.payout_rate), amount: Number(r.payout_amount),
+      currency: r.currency, paid: r.paid, paidAt: r.paid_at,
+    },
+    fraud: { riskScore: r.risk_score },
+    adminNotes: r.admin_notes || '',
+  };
+}
+
+app.get('/api/health', async (_req, res) => {
+  try {
+    await pool.query('SELECT 1');
+    res.json({ ok: true, service: SERVICE_NAME, db: 'ok', time: new Date().toISOString() });
+  } catch (e) {
+    res.status(500).json({ ok: false, service: SERVICE_NAME, db: 'error', detail: e.message });
+  }
+});
 
 app.get('/api/rates', (_req, res) => res.json({ rates: RATE_TABLE }));
 
 app.post('/api/quote', (req, res) => {
   const { brand, balance, condition } = req.body || {};
-  if (!brand || !balance) {
-    return res.status(400).json({ error: 'brand and balance are required' });
-  }
+  if (!brand || !balance) return res.status(400).json({ error: 'brand and balance are required' });
   res.json(calculateQuote({ brand, balance, condition }));
 });
 
-app.post(
-  '/api/submissions',
-  publicLimiter,
-  upload.array('images', 4),
-  async (req, res) => {
-    try {
-      const {
-        fullName, email, phone,
-        brand, cardNumber, pin, balance, condition,
-        paymentMethod, paymentDetails,
-      } = req.body || {};
+app.post('/api/submissions', publicLimiter, upload.array('images', 4), async (req, res) => {
+  try {
+    const { fullName, email, phone, brand, cardNumber, pin, balance, condition,
+      paymentMethod, paymentDetails } = req.body || {};
 
-      const required = ['fullName', 'email', 'brand', 'balance', 'paymentMethod'];
-      const missing = required.filter((k) => !req.body[k]);
-      if (missing.length) {
-        return res.status(400).json({ error: `Missing fields: ${missing.join(', ')}` });
-      }
+    const required = ['fullName', 'email', 'brand', 'balance', 'paymentMethod'];
+    const missing = required.filter((k) => !req.body[k]);
+    if (missing.length) return res.status(400).json({ error: `Missing fields: ${missing.join(', ')}` });
 
-      const quote = calculateQuote({ brand, balance, condition });
-      const fraud = await fraudScreen(req.body);
+    const quote = calculateQuote({ brand, balance, condition });
+    const fraud = await fraudScreen(req.body);
+    const id = uuidv4();
+    const images = (req.files || []).map((f) => ({
+      filename: f.filename, size: f.size, url: `/uploads/${f.filename}`,
+    }));
 
-      const id = uuidv4();
-      const images = (req.files || []).map((f) => ({
-        filename: f.filename,
-        size: f.size,
-        url: `/uploads/${f.filename}`,
-      }));
-
-      const record = {
-        id,
-        platform: SERVICE_NAME,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        status: fraud.status,
-        customer: {
-          fullName: String(fullName).trim(),
-          email: String(email).trim().toLowerCase(),
-          phone: (phone || '').trim(),
-        },
-        card: {
-          brand: String(brand).trim(),
-          cardNumber: (cardNumber || '').trim(),
-          pin: (pin || '').trim(),
-          balance: Number(balance),
-          condition: condition || 'with_receipt',
-          images,
-        },
-        payout: {
-          method: paymentMethod,
-          details: paymentDetails || '',
-          rate: quote.rate,
-          amount: quote.payout,
-          currency: quote.currency,
-          paid: false,
-          paidAt: null,
-        },
-        fraud: { riskScore: fraud.riskScore },
-        adminNotes: '',
-      };
-
-      const all = readCustomers();
-      all.push(record);
-      writeCustomers(all);
-
-      const safeName = record.customer.email.replace(/[^a-z0-9@.-]/gi, '_');
-      const perFile = path.join(DATA_DIR, `cashcard-customer-${safeName}-${id}.json`);
-      fs.writeFileSync(perFile, JSON.stringify(record, null, 2), 'utf8');
-
-      res.status(201).json({ ok: true, submissionId: id, quote, status: record.status });
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({ error: 'Submission failed', detail: err.message });
-    }
-  }
-);
-
-app.get('/api/admin/customers', adminLimiter, requireAdmin, (req, res) => {
-  const { page = 1, limit = 25, q = '', status } = req.query;
-  let list = readCustomers();
-
-  if (q) {
-    const needle = String(q).toLowerCase();
-    list = list.filter((r) =>
-      r.customer.fullName.toLowerCase().includes(needle) ||
-      r.customer.email.toLowerCase().includes(needle) ||
-      r.card.brand.toLowerCase().includes(needle) ||
-      r.id.toLowerCase().includes(needle)
+    await pool.query(
+      `INSERT INTO customers (id, status, full_name, email, phone, brand, card_number, pin,
+        balance, condition, payment_method, payment_details, payout_rate, payout_amount,
+        currency, risk_score, images)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)`,
+      [id, fraud.status, fullName.trim(), email.trim().toLowerCase(), (phone || '').trim(),
+       brand.trim(), (cardNumber || '').trim(), (pin || '').trim(),
+       Number(balance), condition || 'with_receipt', paymentMethod, paymentDetails || '',
+       quote.rate, quote.payout, quote.currency, fraud.riskScore, JSON.stringify(images)]
     );
+
+    try {
+      const safeName = email.trim().toLowerCase().replace(/[^a-z0-9@.-]/gi, '_');
+      fs.writeFileSync(
+        path.join(DATA_DIR, `cashcard-customer-${safeName}-${id}.json`),
+        JSON.stringify({ id, customer: { fullName, email, phone }, quote }, null, 2)
+      );
+    } catch (_) {}
+
+    res.status(201).json({ ok: true, submissionId: id, quote, status: fraud.status });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Submission failed', detail: err.message });
   }
-  if (status) list = list.filter((r) => r.status === status);
-
-  list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
-  const pageNum = Math.max(1, parseInt(page, 10));
-  const pageSize = Math.min(200, Math.max(1, parseInt(limit, 10)));
-  const start = (pageNum - 1) * pageSize;
-  const pageItems = list.slice(start, start + pageSize);
-
-  res.json({ total: list.length, page: pageNum, limit: pageSize, data: pageItems });
 });
 
-app.get('/api/admin/customers/:id', requireAdmin, (req, res) => {
-  const list = readCustomers();
-  const rec = list.find((r) => r.id === req.params.id);
-  if (!rec) return res.status(404).json({ error: 'Not found' });
-  res.json(rec);
+app.get('/api/admin/customers', adminLimiter, requireAdmin, async (req, res) => {
+  try {
+    const { page = 1, limit = 25, q = '', status } = req.query;
+    const pageNum = Math.max(1, parseInt(page, 10));
+    const pageSize = Math.min(200, Math.max(1, parseInt(limit, 10)));
+    const offset = (pageNum - 1) * pageSize;
+
+    const where = [];
+    const params = [];
+    if (q) {
+      params.push(`%${q.toLowerCase()}%`);
+      where.push(`(LOWER(full_name) LIKE $${params.length} OR LOWER(email) LIKE $${params.length}
+                  OR LOWER(brand) LIKE $${params.length} OR id::text LIKE $${params.length})`);
+    }
+    if (status) {
+      params.push(status);
+      where.push(`status = $${params.length}`);
+    }
+    const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
+
+    const total = await pool.query(`SELECT COUNT(*)::int AS c FROM customers ${whereSql}`, params);
+    params.push(pageSize, offset);
+    const rows = await pool.query(
+      `SELECT * FROM customers ${whereSql} ORDER BY created_at DESC
+       LIMIT $${params.length - 1} OFFSET $${params.length}`,
+      params
+    );
+
+    res.json({ total: total.rows[0].c, page: pageNum, limit: pageSize, data: rows.rows.map(rowToRecord) });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.patch('/api/admin/customers/:id', requireAdmin, (req, res) => {
-  const list = readCustomers();
-  const idx = list.findIndex((r) => r.id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: 'Not found' });
-
-  const rec = list[idx];
-  const { status, adminNotes, paid } = req.body || {};
-
-  if (status) rec.status = status;
-  if (adminNotes !== undefined) rec.adminNotes = adminNotes;
-  if (paid === true)  { rec.payout.paid = true;  rec.payout.paidAt = new Date().toISOString(); }
-  if (paid === false) { rec.payout.paid = false; rec.payout.paidAt = null; }
-  rec.updatedAt = new Date().toISOString();
-
-  list[idx] = rec;
-  writeCustomers(list);
-
-  const safeName = rec.customer.email.replace(/[^a-z0-9@.-]/gi, '_');
-  fs.writeFileSync(
-    path.join(DATA_DIR, `cashcard-customer-${safeName}-${rec.id}.json`),
-    JSON.stringify(rec, null, 2),
-    'utf8'
-  );
-
-  res.json(rec);
+app.get('/api/admin/customers/:id', requireAdmin, async (req, res) => {
+  try {
+    const r = await pool.query('SELECT * FROM customers WHERE id = $1', [req.params.id]);
+    if (!r.rows.length) return res.status(404).json({ error: 'Not found' });
+    res.json(rowToRecord(r.rows[0]));
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.delete('/api/admin/customers/:id', requireAdmin, (req, res) => {
-  const list = readCustomers();
-  const idx = list.findIndex((r) => r.id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: 'Not found' });
-  const [removed] = list.splice(idx, 1);
-  writeCustomers(list);
-  res.json({ ok: true, removed: removed.id });
+app.patch('/api/admin/customers/:id', requireAdmin, async (req, res) => {
+  try {
+    const { status, adminNotes, paid } = req.body || {};
+    const sets = ['updated_at = NOW()'];
+    const params = [];
+    if (status) { params.push(status); sets.push(`status = $${params.length}`); }
+    if (adminNotes !== undefined) { params.push(adminNotes); sets.push(`admin_notes = $${params.length}`); }
+    if (paid === true) { sets.push(`paid = TRUE, paid_at = NOW()`); }
+    if (paid === false) { sets.push(`paid = FALSE, paid_at = NULL`); }
+    params.push(req.params.id);
+    const r = await pool.query(
+      `UPDATE customers SET ${sets.join(', ')} WHERE id = $${params.length} RETURNING *`, params
+    );
+    if (!r.rows.length) return res.status(404).json({ error: 'Not found' });
+    res.json(rowToRecord(r.rows[0]));
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.get('/api/admin/export.csv', requireAdmin, (req, res) => {
-  const list = readCustomers();
-  const headers = [
-    'id','createdAt','status','fullName','email','phone',
-    'brand','cardNumber','balance','condition',
-    'payoutMethod','payoutAmount','payoutPaid','riskScore','adminNotes',
-  ];
-  const rows = list.map((r) => [
-    r.id, r.createdAt, r.status,
-    r.customer.fullName, r.customer.email, r.customer.phone,
-    r.card.brand, r.card.cardNumber, r.card.balance, r.card.condition,
-    r.payout.method, r.payout.amount, r.payout.paid,
-    r.fraud.riskScore, (r.adminNotes || '').replace(/[\r\n,]/g, ' '),
-  ]);
-  const csv = [headers, ...rows]
-    .map((row) => row.map((v) => `"${String(v ?? '').replace(/"/g, '""')}"`).join(','))
-    .join('\n');
+app.delete('/api/admin/customers/:id', requireAdmin, async (req, res) => {
+  try {
+    const r = await pool.query('DELETE FROM customers WHERE id = $1 RETURNING id', [req.params.id]);
+    if (!r.rows.length) return res.status(404).json({ error: 'Not found' });
+    res.json({ ok: true, removed: r.rows[0].id });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
 
-  res.setHeader('Content-Type', 'text/csv');
-  res.setHeader('Content-Disposition', `attachment; filename="cashcard-customers-${Date.now()}.csv"`);
-  res.send(csv);
+app.get('/api/admin/export.csv', requireAdmin, async (req, res) => {
+  try {
+    const r = await pool.query('SELECT * FROM customers ORDER BY created_at DESC');
+    const headers = ['id','createdAt','status','fullName','email','phone','brand','cardNumber','balance','condition','payoutMethod','payoutAmount','payoutPaid','riskScore','adminNotes'];
+    const rows = r.rows.map((x) => [
+      x.id, x.created_at, x.status, x.full_name, x.email, x.phone,
+      x.brand, x.card_number, x.balance, x.condition,
+      x.payment_method, x.payout_amount, x.paid, x.risk_score,
+      (x.admin_notes || '').replace(/[\r\n,]/g, ' '),
+    ]);
+    const csv = [headers, ...rows]
+      .map((row) => row.map((v) => `"${String(v ?? '').replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="cashcard-customers-${Date.now()}.csv"`);
+    res.send(csv);
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.use('/uploads', express.static(UPLOAD_DIR));
@@ -280,8 +286,14 @@ app.use((err, _req, res, _next) => {
   res.status(400).json({ error: err.message || 'Bad request' });
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 ${SERVICE_NAME} API running at http://localhost:${PORT}`);
-  console.log(`📁 Data dir: ${DATA_DIR}`);
-  console.log(`📁 Uploads:  ${UPLOAD_DIR}`);
-});
+initDb()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`🚀 ${SERVICE_NAME} API running at http://localhost:${PORT}`);
+      console.log(`📊 DB connected via DATABASE_URL`);
+    });
+  })
+  .catch((e) => {
+    console.error('❌ DB init failed:', e.message);
+    process.exit(1);
+  });
