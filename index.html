@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CashCard — Sell Your Gift Cards for Cash</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f7f8fa; color: #0f172a; line-height: 1.5; }
+
+  header { background: linear-gradient(135deg, #1e40af, #3b82f6); color: #fff; padding: 20px 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+  header .container { max-width: 1100px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
+  .logo { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; }
+  .logo span { color: #fbbf24; }
+  header nav a { color: #fff; text-decoration: none; margin-left: 24px; font-weight: 500; opacity: 0.9; }
+  header nav a:hover { opacity: 1; }
+
+  .hero { max-width: 1100px; margin: 0 auto; padding: 60px 24px 40px; text-align: center; }
+  .hero h1 { font-size: 42px; font-weight: 800; margin-bottom: 16px; line-height: 1.15; }
+  .hero h1 span { color: #1e40af; }
+  .hero p { font-size: 18px; color: #475569; max-width: 600px; margin: 0 auto 32px; }
+
+  .trust { display: flex; justify-content: center; gap: 32px; flex-wrap: wrap; margin-top: 32px; color: #64748b; font-size: 14px; }
+
+  .container-main { max-width: 700px; margin: 0 auto; padding: 0 24px 60px; }
+  .card { background: #fff; border-radius: 16px; padding: 32px; box-shadow: 0 4px 24px rgba(0,0,0,0.06); margin-bottom: 24px; }
+  .card h2 { font-size: 22px; margin-bottom: 24px; }
+
+  .step-badge { display: inline-block; background: #dbeafe; color: #1e40af; font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 20px; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  label { display: block; font-size: 14px; font-weight: 600; color: #334155; margin-bottom: 6px; margin-top: 16px; }
+  label:first-of-type { margin-top: 0; }
+  input, select { width: 100%; padding: 12px 14px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 15px; font-family: inherit; }
+  input:focus, select:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+
+  .quote-box { background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 10px; padding: 16px; margin-top: 20px; display: none; }
+  .quote-box.show { display: block; }
+  .quote-box .amount { font-size: 28px; font-weight: 800; color: #16a34a; }
+  .quote-box .label { font-size: 13px; color: #166534; margin-bottom: 4px; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 600px) { .grid-2 { grid-template-columns: 1fr; } }
+
+  button { width: 100%; padding: 16px; background: linear-gradient(135deg, #1e40af, #3b82f6); color: #fff; border: none; border-radius: 10px; font-size: 17px; font-weight: 700; cursor: pointer; margin-top: 24px; }
+  button:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(59,130,246,0.35); }
+  button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+  .msg { padding: 16px; border-radius: 10px; margin-top: 16px; display: none; font-size: 15px; }
+  .msg.show { display: block; }
+  .msg.error { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+
+  .success-screen { text-align: center; padding: 40px 20px; }
+  .success-screen .check { width: 64px; height: 64px; background: #16a34a; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; color: #fff; font-size: 32px; font-weight: bold; }
+  .success-screen h2 { font-size: 26px; margin-bottom: 12px; }
+  .success-screen p { color: #64748b; margin-bottom: 8px; }
+  .success-screen .ref { font-family: monospace; background: #f1f5f9; padding: 8px 16px; border-radius: 8px; margin-top: 20px; display: inline-block; font-size: 13px; }
+
+  footer { text-align: center; padding: 40px 24px; color: #94a3b8; font-size: 14px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="container">
+    <div class="logo">Cash<span>Card</span></div>
+    <nav>
+      <a href="#sell">Sell a Card</a>
+      <a href="/admin">Admin</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <h1>Turn Unused Gift Cards into <span>Real Cash</span></h1>
+  <p>Sell your Amazon, Apple, Steam, and 100+ other gift cards for up to 93% of face value. Same-day payouts via PayPal, Zelle, Cash App, Bitcoin.</p>
+  <div class="trust">
+    <div>✅ Verified & Secure</div>
+    <div>⚡ Same-Day Payout</div>
+    <div>🔒 256-bit SSL</div>
+  </div>
+</section>
+
+<div class="container-main">
+
+  <div class="card" id="sell">
+    <span class="step-badge">Step 1 — Get a Quote</span>
+    <h2>Tell us about your gift card</h2>
+
+    <div class="grid-2">
+      <div>
+        <label>Gift Card Brand</label>
+        <select id="brand" required>
+          <option value="">Select a brand...</option>
+          <option value="Amazon">Amazon</option>
+          <option value="Apple">Apple / iTunes</option>
+          <option value="Steam">Steam</option>
+          <option value="Google Play">Google Play</option>
+          <option value="Walmart">Walmart</option>
+          <option value="Target">Target</option>
+          <option value="Visa Vanilla">Visa Vanilla</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+      <div>
+        <label>Card Balance (USD)</label>
+        <input type="number" id="balance" min="5" step="0.01" placeholder="e.g. 100" required>
+      </div>
+    </div>
+
+    <label>Condition</label>
+    <select id="condition">
+      <option value="with_receipt">With receipt — highest rate</option>
+      <option value="without_receipt">Without receipt</option>
+      <option value="partial">Partially used</option>
+    </select>
+
+    <div class="quote-box" id="quoteBox">
+      <div class="label">You'll receive approximately</div>
+      <div class="amount" id="quoteAmount">$0.00</div>
+    </div>
+  </div>
+
+  <div class="card" id="detailCard">
+    <span class="step-badge">Step 2 — Your Details</span>
+    <h2>Where should we send your payout?</h2>
+
+    <div class="grid-2">
+      <div>
+        <label>Full Name</label>
+        <input type="text" id="fullName" placeholder="John Smith" required>
+      </div>
+      <div>
+        <label>Email</label>
+        <input type="email" id="email" placeholder="you@example.com" required>
+      </div>
+    </div>
+
+    <label>Phone (optional)</label>
+    <input type="tel" id="phone" placeholder="+1 555 123 4567">
+
+    <label>Card Number</label>
+    <input type="text" id="cardNumber" placeholder="XXXX-XXXX-XXXX-XXXX">
+
+    <label>PIN (if applicable)</label>
+    <input type="text" id="pin" placeholder="4-digit PIN">
+
+    <div class="grid-2">
+      <div>
+        <label>Payout Method</label>
+        <select id="paymentMethod" required>
+          <option value="">Select...</option>
+          <option value="paypal">PayPal</option>
+          <option value="zelle">Zelle</option>
+          <option value="cashapp">Cash App</option>
+          <option value="bitcoin">Bitcoin</option>
+          <option value="chime">Chime</option>
+        </select>
+      </div>
+      <div>
+        <label>Payout Details</label>
+        <input type="text" id="paymentDetails" placeholder="Email, $cashtag, wallet, etc." required>
+      </div>
+    </div>
+
+    <button id="submitBtn" onclick="submitForm()">Submit My Card →</button>
+    <div class="msg error" id="errorMsg"></div>
+  </div>
+
+  <div class="card" id="successCard" style="display:none;">
+    <div class="success-screen">
+      <div class="check">✓</div>
+      <h2>Submission Received!</h2>
+      <p>We'll verify your card and send your payout within 24 hours.</p>
+      <p>You'll receive a confirmation at the email you provided.</p>
+      <div class="ref" id="refId"></div>
+    </div>
+  </div>
+
+</div>
+
+<footer>© 2026 CashCard. All rights reserved. | Secure gift card trading.</footer>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+
+  async function updateQuote() {
+    const brand = $('brand').value;
+    const balance = parseFloat($('balance').value);
+    const condition = $('condition').value;
+    if (!brand || !balance || balance < 5) { $('quoteBox').classList.remove('show'); return; }
+    try {
+      const res = await fetch('/api/quote', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ brand, balance, condition })
+      });
+      const data = await res.json();
+      if (data.payout) {
+        $('quoteAmount').textContent = '$' + data.payout.toFixed(2);
+        $('quoteBox').classList.add('show');
+      }
+    } catch (e) { console.error(e); }
+  }
+
+  ['brand', 'balance', 'condition'].forEach(id => {
+    $(id).addEventListener('input', updateQuote);
+    $(id).addEventListener('change', updateQuote);
+  });
+
+  async function submitForm() {
+    const btn = $('submitBtn');
+    const errBox = $('errorMsg');
+    errBox.classList.remove('show');
+
+    const data = {
+      fullName: $('fullName').value.trim(),
+      email: $('email').value.trim(),
+      phone: $('phone').value.trim(),
+      brand: $('brand').value,
+      cardNumber: $('cardNumber').value.trim(),
+      pin: $('pin').value.trim(),
+      balance: $('balance').value,
+      condition: $('condition').value,
+      paymentMethod: $('paymentMethod').value,
+      paymentDetails: $('paymentDetails').value.trim()
+    };
+
+    const missing = [];
+    if (!data.fullName) missing.push('Full Name');
+    if (!data.email) missing.push('Email');
+    if (!data.brand) missing.push('Gift Card Brand');
+    if (!data.balance) missing.push('Card Balance');
+    if (!data.paymentMethod) missing.push('Payout Method');
+    if (!data.paymentDetails) missing.push('Payout Details');
+
+    if (missing.length) {
+      errBox.textContent = 'Please fill in: ' + missing.join(', ');
+      errBox.classList.add('show');
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Submitting...';
+
+    try {
+      const formData = new FormData();
+      Object.entries(data).forEach(([k, v]) => formData.append(k, v));
+      const res = await fetch('/api/submissions', { method: 'POST', body: formData });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Submission failed');
+
+      $('sell').style.display = 'none';
+      $('detailCard').style.display = 'none';
+      $('successCard').style.display = 'block';
+      $('refId').textContent = 'Reference: ' + json.submissionId;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (err) {
+      errBox.textContent = 'Error: ' + err.message;
+      errBox.classList.add('show');
+      btn.disabled = false;
+      btn.textContent = 'Submit My Card →';
+    }
+  }
+</script>
+
+</body>
+</html>

@@ -135,6 +135,8 @@ function rowToRecord(r) {
   };
 }
 
+// ---------- API routes ----------
+
 app.get('/api/health', async (_req, res) => {
   try {
     await pool.query('SELECT 1');
@@ -277,6 +279,24 @@ app.get('/api/admin/export.csv', requireAdmin, async (req, res) => {
     res.setHeader('Content-Disposition', `attachment; filename="cashcard-customers-${Date.now()}.csv"`);
     res.send(csv);
   } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ---------- Page routes ----------
+
+app.get('/', (_req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+app.get('/admin/login', (_req, res) => {
+  res.sendFile(path.join(__dirname, 'admin-login.html'));
+});
+
+app.get('/admin', (_req, res) => {
+  res.sendFile(path.join(__dirname, 'admin.html'));
+});
+
+app.get('/admin/', (_req, res) => {
+  res.redirect('/admin');
 });
 
 app.use('/uploads', express.static(UPLOAD_DIR));

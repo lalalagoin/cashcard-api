@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CashCard Admin Dashboard</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f1f5f9; color: #0f172a; }
+
+  header { background: #1e293b; color: #fff; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; }
+  .logo { font-size: 20px; font-weight: 800; }
+  .logo span { color: #fbbf24; }
+  header button { background: #ef4444; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600; }
+
+  .toolbar { background: #fff; padding: 20px 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+  .toolbar input, .toolbar select { padding: 10px 14px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 14px; }
+  .toolbar input { flex: 1; min-width: 200px; }
+  .toolbar button { background: #3b82f6; color: #fff; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600; }
+  .toolbar button:hover { background: #2563eb; }
+  .toolbar button.export { background: #10b981; }
+  .toolbar button.export:hover { background: #059669; }
+
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; padding: 24px; }
+  .stat { background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+  .stat .label { font-size: 13px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
+  .stat .value { font-size: 28px; font-weight: 800; margin-top: 4px; }
+
+  .table-wrap { padding: 0 24px 24px; }
+  .table-wrap table { width: 100%; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+  th { background: #f8fafc; padding: 12px 16px; text-align: left; font-size: 12px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #e2e8f0; }
+  td { padding: 14px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
+  tr:hover td { background: #f8fafc; cursor: pointer; }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+  .badge.approved { background: #d1fae5; color: #065f46; }
+  .badge.paid { background: #dbeafe; color: #1e40af; }
+  .badge.pending { background: #fef3c7; color: #92400e; }
+
+  .modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; padding: 24px; }
+  .modal-backdrop.show { display: flex; }
+  .modal { background: #fff; border-radius: 16px; padding: 32px; max-width: 600px; width: 100%; max-height: 90vh; overflow-y: auto; position: relative; }
+  .modal h2 { margin-bottom: 20px; }
+  .modal .close { position: absolute; top: 16px; right: 16px; background: none; border: none; font-size: 24px; cursor: pointer; color: #64748b; }
+  .detail-row { display: grid; grid-template-columns: 140px 1fr; padding: 10px 0; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
+  .detail-row .key { color: #64748b; font-weight: 600; }
+  .detail-row .val { color: #0f172a; word-break: break-all; }
+  .modal-actions { margin-top: 24px; display: flex; gap: 12px; flex-wrap: wrap; }
+  .modal-actions button { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px; }
+  .btn-paid { background: #10b981; color: #fff; }
+  .btn-delete { background: #ef4444; color: #fff; }
+  .btn-close { background: #e2e8f0; color: #334155; }
+
+  .loading { text-align: center; padding: 60px; color: #64748b; }
+  .empty { text-align: center; padding: 60px; color: #94a3b8; font-size: 15px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Cash<span>Card</span> Admin</div>
+  <div>
+    <span style="margin-right: 16px; font-size: 13px; opacity: 0.7;">Signed in</span>
+    <button onclick="logout()">Logout</button>
+  </div>
+</header>
+
+<div class="toolbar">
+  <input type="text" id="search" placeholder="Search by name, email, brand, or ID..." oninput="debouncedLoad()">
+  <select id="statusFilter" onchange="load()">
+    <option value="">All statuses</option>
+    <option value="auto_approved">Auto-approved</option>
+    <option value="paid">Paid</option>
+    <option value="pending">Pending</option>
+    <option value="rejected">Rejected</option>
+  </select>
+  <button onclick="load()">Refresh</button>
+  <button class="export" onclick="exportCSV()">Export CSV</button>
+</div>
+
+<div class="stats" id="stats">
+  <div class="stat"><div class="label">Total Customers</div><div class="value" id="statTotal">—</div></div>
+  <div class="stat"><div class="label">Total Payouts</div><div class="value" id="statPayout">—</div></div>
+</div>
+
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Customer</th>
+        <th>Email</th>
+        <th>Brand</th>
+        <th>Balance</th>
+        <th>Payout</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody id="tableBody">
+      <tr><td colspan="7" class="loading">Loading...</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal" id="modalContent"></div>
+</div>
+
+<script>
+  const adminKey = localStorage.getItem('adminKey');
+  if (!adminKey) { window.location.href = '/admin/login'; }
+
+  let searchTimer;
+  function debouncedLoad() {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(load, 400);
+  }
+
+  async function api(path) {
+    const res = await fetch(path, { headers: { 'x-admin-key': adminKey } });
+    if (res.status === 401) { logout(); throw new Error('Unauthorized'); }
+    if (!res.ok) throw new Error('API error');
+    return res.json();
+  }
+
+  async function load() {
+    const q = document.getElementById('search').value.trim();
+    const status = document.getElementById('statusFilter').value;
+    const params = new URLSearchParams();
+    if (q) params.set('q', q);
+    if (status) params.set('status', status);
+    params.set('limit', '200');
+
+    try {
+      const data = await api('/api/admin/customers?' + params);
+      renderTable(data.data);
+      document.getElementById('statTotal').textContent = data.total;
+      const totalPayout = data.data.reduce((s, r) => s + (r.payout.amount || 0), 0);
+      document.getElementById('statPayout').textContent = '$' + totalPayout.toFixed(2);
+    } catch (e) {
+      document.getElementById('tableBody').innerHTML = '<tr><td colspan="7" class="empty">Error loading data</td></tr>';
+    }
+  }
+
+  function renderTable(rows) {
+    const tbody = document.getElementById('tableBody');
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="7" class="empty">No submissions yet</td></tr>';
+      return;
+    }
+    tbody.innerHTML = rows.map(r => `
+      <tr onclick="showDetail('${r.id}')">
+        <td>${new Date(r.createdAt).toLocaleDateString()}</td>
+        <td>${escape(r.customer.fullName)}</td>
+        <td>${escape(r.customer.email)}</td>
+        <td>${escape(r.card.brand)}</td>
+        <td>$${r.card.balance}</td>
+        <td>$${r.payout.amount}</td>
+        <td><span class="badge ${r.status === 'paid' ? 'paid' : r.status === 'auto_approved' ? 'approved' : 'pending'}">${r.status}</span></td>
+      </tr>
+    `).join('');
+  }
+
+  function escape(s) {
+    return String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  async function showDetail(id) {
+    try {
+      const r = await api('/api/admin/customers/' + id);
+      const modal = document.getElementById('modalContent');
+      modal.innerHTML = `
+        <button class="close" onclick="closeModal()">×</button>
+        <h2>Customer Details</h2>
+        <div class="detail-row"><span class="key">ID</span><span class="val">${r.id}</span></div>
+        <div class="detail-row"><span class="key">Submitted</span><span class="val">${new Date(r.createdAt).toLocaleString()}</span></div>
+        <div class="detail-row"><span class="key">Status</span><span class="val">${r.status}</span></div>
+        <div class="detail-row"><span class="key">Name</span><span class="val">${escape(r.customer.fullName)}</span></div>
+        <div class="detail-row"><span class="key">Email</span><span class="val">${escape(r.customer.email)}</span></div>
+        <div class="detail-row"><span class="key">Phone</span><span class="val">${escape(r.customer.phone || '—')}</span></div>
+        <div class="detail-row"><span class="key">Brand</span><span class="val">${escape(r.card.brand)}</span></div>
+        <div class="detail-row"><span class="key">Card #</span><span class="val">${escape(r.card.cardNumber || '—')}</span></div>
+        <div class="detail-row"><span class="key">PIN</span><span class="val">${escape(r.card.pin || '—')}</span></div>
+        <div class="detail-row"><span class="key">Balance</span><span class="val">$${r.card.balance}</span></div>
+        <div class="detail-row"><span class="key">Condition</span><span class="val">${r.card.condition}</span></div>
+        <div class="detail-row"><span class="key">Payout</span><span class="val">$${r.payout.amount} via ${escape(r.payout.method)}</span></div>
+        <div class="detail-row"><span class="key">Payout Details</span><span class="val">${escape(r.payout.details || '—')}</span></div>
+        <div class="detail-row"><span class="key">Paid</span><span class="val">${r.payout.paid ? 'Yes — ' + new Date(r.payout.paidAt).toLocaleString() : 'No'}</span></div>
+        <div class="detail-row"><span class="key">Risk Score</span><span class="val">${r.fraud.riskScore}</span></div>
+        <div class="detail-row"><span class="key">Admin Notes</span><span class="val">${escape(r.adminNotes || '—')}</span></div>
+        <div class="modal-actions">
+          ${!r.payout.paid ? `<button class="btn-paid" onclick="markPaid('${r.id}')">Mark as Paid</button>` : ''}
+          <button class="btn-delete" onclick="deleteCustomer('${r.id}')">Delete</button>
+          <button class="btn-close" onclick="closeModal()">Close</button>
+        </div>
+      `;
+      document.getElementById('modalBackdrop').classList.add('show');
+    } catch (e) {
+      alert('Error: ' + e.message);
+    }
+  }
+
+  async function markPaid(id) {
+    try {
+      await fetch('/api/admin/customers/' + id, {
+        method: 'PATCH',
+        headers: { 'x-admin-key': adminKey, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paid: true, status: 'paid' })
+      });
+      closeModal();
+      load();
+    } catch (e) { alert('Error: ' + e.message); }
+  }
+
+  async function deleteCustomer(id) {
+    if (!confirm('Delete this customer permanently?')) return;
+    try {
+      await fetch('/api/admin/customers/' + id, {
+        method: 'DELETE',
+        headers: { 'x-admin-key': adminKey }
+      });
+      closeModal();
+      load();
+    } catch (e) { alert('Error: ' + e.message); }
+  }
+
+  function closeModal() {
+    document.getElementById('modalBackdrop').classList.remove('show');
+  }
+
+  function exportCSV() {
+    window.location.href = '/api/admin/export.csv?adminKey=' + encodeURIComponent(adminKey);
+  }
+
+  function logout() {
+    localStorage.removeItem('adminKey');
+    window.location.href = '/admin/login';
+  }
+
+  load();
+</script>
+
+</body>
+</html>
