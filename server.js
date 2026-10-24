@@ -299,6 +299,28 @@ app.get('/admin/', (_req, res) => {
   res.redirect('/admin');
 });
 
+// Google Search Console verification file (serves any google*.html from project root)
+app.get(/^\/google[\w-]+\.html$/, (req, res) => {
+  const fileName = req.path.replace('/', '');
+  const filePath = path.join(__dirname, fileName);
+  if (fs.existsSync(filePath)) {
+    res.sendFile(filePath);
+  } else {
+    res.status(404).send('Verification file not found');
+  }
+});
+
+// robots.txt — keep Google out of admin/API
+app.get('/robots.txt', (_req, res) => {
+  res.type('text/plain');
+  res.send(`User-agent: *
+Disallow: /admin
+Disallow: /admin/
+Disallow: /api/
+Allow: /
+`);
+});
+
 app.use('/uploads', express.static(UPLOAD_DIR));
 
 app.use((err, _req, res, _next) => {
