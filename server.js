@@ -56,6 +56,19 @@ async function initDb() {
   console.log('📊 Database ready (customers table)');
 }
 
+// ---------- Google verification route (MUST come before helmet) ----------
+app.get(/^\/google[\w-]+\.html$/, (req, res) => {
+  const fileName = req.path.replace('/', '');
+  const filePath = path.join(__dirname, fileName);
+  if (fs.existsSync(filePath)) {
+    res.setHeader('Content-Type', 'text/html');
+    res.sendFile(filePath);
+  } else {
+    res.status(404).send('Verification file not found');
+  }
+});
+
+// ---------- Security & general middleware ----------
 app.use(helmet());
 app.use(cors());
 app.use(morgan('combined'));
@@ -136,7 +149,6 @@ function rowToRecord(r) {
 }
 
 // ---------- API routes ----------
-
 app.get('/api/health', async (_req, res) => {
   try {
     await pool.query('SELECT 1');
@@ -282,7 +294,6 @@ app.get('/api/admin/export.csv', requireAdmin, async (req, res) => {
 });
 
 // ---------- Page routes ----------
-
 app.get('/', (_req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
@@ -299,18 +310,7 @@ app.get('/admin/', (_req, res) => {
   res.redirect('/admin');
 });
 
-// Google Search Console verification file (serves any google*.html from project root)
-app.get(/^\/google[\w-]+\.html$/, (req, res) => {
-  const fileName = req.path.replace('/', '');
-  const filePath = path.join(__dirname, fileName);
-  if (fs.existsSync(filePath)) {
-    res.sendFile(filePath);
-  } else {
-    res.status(404).send('Verification file not found');
-  }
-});
-
-// robots.txt — keep Google out of admin/API
+// ---------- robots.txt ----------
 app.get('/robots.txt', (_req, res) => {
   res.type('text/plain');
   res.send(`User-agent: *
@@ -321,6 +321,7 @@ Allow: /
 `);
 });
 
+// ---------- Static uploads + error handler ----------
 app.use('/uploads', express.static(UPLOAD_DIR));
 
 app.use((err, _req, res, _next) => {
