@@ -62,6 +62,7 @@ app.get(/^\/google[\w-]+\.html$/, (req, res) => {
   const filePath = path.join(__dirname, fileName);
   if (fs.existsSync(filePath)) {
     res.setHeader('Content-Type', 'text/html');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.sendFile(filePath);
   } else {
     res.status(404).send('Verification file not found');
@@ -318,7 +319,27 @@ Disallow: /admin
 Disallow: /admin/
 Disallow: /api/
 Allow: /
+Sitemap: https://cashcard-api.onrender.com/sitemap.xml
 `);
+});
+
+// ---------- sitemap.xml ----------
+app.get('/sitemap.xml', (_req, res) => {
+  const base = 'https://cashcard-api.onrender.com';
+  res.type('application/xml');
+  res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>${base}/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>${base}/admin/login</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.1</priority>
+  </url>
+</urlset>`);
 });
 
 // ---------- Static uploads + error handler ----------
