@@ -319,13 +319,13 @@ Disallow: /admin
 Disallow: /admin/
 Disallow: /api/
 Allow: /
-Sitemap: https://cashcard-api.onrender.com/sitemap.xml
+Sitemap: https://sellgiftcardcash.com/sitemap.xml
 `);
 });
 
 // ---------- sitemap.xml ----------
 app.get('/sitemap.xml', (_req, res) => {
-  const base = 'https://cashcard-api.onrender.com';
+  const base = 'https://sellgiftcardcash.com';
   res.type('application/xml');
   res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">

@@ -3,66 +3,224 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CashCard — Sell Your Gift Cards for Cash</title>
+<title>Sell Gift Card Cash — Instant Payouts</title>
+<link href="https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f7f8fa; color: #0f172a; line-height: 1.5; }
+  
+  body { 
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+    background: #090e17; /* Deep dark navy matching the logo background */
+    color: #f8fafc; 
+    line-height: 1.5; 
+    background-image: 
+      radial-gradient(circle at 15% 50%, rgba(34, 197, 94, 0.08), transparent 25%),
+      radial-gradient(circle at 85% 30%, rgba(234, 179, 8, 0.05), transparent 25%);
+  }
 
-  header { background: linear-gradient(135deg, #1e40af, #3b82f6); color: #fff; padding: 20px 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
-  header .container { max-width: 1100px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
-  .logo { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; }
-  .logo span { color: #fbbf24; }
-  header nav a { color: #fff; text-decoration: none; margin-left: 24px; font-weight: 500; opacity: 0.9; }
-  header nav a:hover { opacity: 1; }
+  /* HEADER / LOGO AREA */
+  header { 
+    background: rgba(9, 14, 23, 0.9); 
+    border-bottom: 2px solid #22c55e; 
+    padding: 15px 24px; 
+    text-align: center;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    backdrop-filter: blur(10px);
+  }
+  header img {
+    max-height: 120px;
+    width: auto;
+    margin-bottom: 10px;
+    filter: drop-shadow(0 0 15px rgba(34, 197, 94, 0.3));
+  }
+  header nav a { 
+    color: #22c55e; 
+    text-decoration: none; 
+    margin: 0 15px; 
+    font-weight: 800; 
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: 14px;
+    transition: color 0.2s;
+  }
+  header nav a:hover { color: #eab308; text-shadow: 0 0 10px rgba(234, 179, 8, 0.5); }
 
-  .hero { max-width: 1100px; margin: 0 auto; padding: 60px 24px 40px; text-align: center; }
-  .hero h1 { font-size: 42px; font-weight: 800; margin-bottom: 16px; line-height: 1.15; }
-  .hero h1 span { color: #1e40af; }
-  .hero p { font-size: 18px; color: #475569; max-width: 600px; margin: 0 auto 32px; }
+  /* HERO SECTION */
+  .hero { 
+    max-width: 1100px; 
+    margin: 0 auto; 
+    padding: 60px 24px 40px; 
+    text-align: center; 
+  }
+  .hero h1 { 
+    font-family: 'Bangers', cursive; /* Graffiti-style font */
+    font-size: 56px; 
+    font-weight: 400; 
+    margin-bottom: 20px; 
+    line-height: 1.1; 
+    letter-spacing: 2px;
+    text-shadow: 2px 2px 0 #000;
+  }
+  .hero h1 span { 
+    color: #22c55e; 
+    text-shadow: 0 0 20px rgba(34, 197, 94, 0.6), 2px 2px 0 #000;
+  }
+  .hero p { 
+    font-size: 18px; 
+    color: #94a3b8; 
+    max-width: 600px; 
+    margin: 0 auto 32px; 
+  }
 
-  .trust { display: flex; justify-content: center; gap: 32px; flex-wrap: wrap; margin-top: 32px; color: #64748b; font-size: 14px; }
+  /* TRUST BADGES */
+  .trust { 
+    display: flex; 
+    justify-content: center; 
+    gap: 20px; 
+    flex-wrap: wrap; 
+    margin-top: 32px; 
+    font-size: 13px; 
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .trust div { 
+    background: rgba(30, 41, 59, 0.8);
+    padding: 8px 16px;
+    border-radius: 20px;
+    border: 1px solid #334155;
+    color: #cbd5e1;
+  }
 
+  /* FORM CARDS */
   .container-main { max-width: 700px; margin: 0 auto; padding: 0 24px 60px; }
-  .card { background: #fff; border-radius: 16px; padding: 32px; box-shadow: 0 4px 24px rgba(0,0,0,0.06); margin-bottom: 24px; }
-  .card h2 { font-size: 22px; margin-bottom: 24px; }
+  .card { 
+    background: #111827; /* Card background */
+    border-radius: 16px; 
+    padding: 32px; 
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5); 
+    margin-bottom: 24px; 
+    border: 1px solid #1f2937;
+    border-top: 4px solid #22c55e; /* Neon top border */
+  }
+  .card h2 { font-size: 22px; margin-bottom: 24px; color: #f8fafc; }
 
-  .step-badge { display: inline-block; background: #dbeafe; color: #1e40af; font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 20px; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .step-badge { 
+    display: inline-block; 
+    background: rgba(34, 197, 94, 0.1); 
+    color: #22c55e; 
+    font-size: 12px; 
+    font-weight: 800; 
+    padding: 6px 12px; 
+    border-radius: 6px; 
+    margin-bottom: 16px; 
+    text-transform: uppercase; 
+    letter-spacing: 1px;
+    border: 1px solid rgba(34, 197, 94, 0.3);
+  }
 
-  label { display: block; font-size: 14px; font-weight: 600; color: #334155; margin-bottom: 6px; margin-top: 16px; }
+  /* FORM INPUTS */
+  label { display: block; font-size: 13px; font-weight: 600; color: #94a3b8; margin-bottom: 8px; margin-top: 20px; text-transform: uppercase; letter-spacing: 0.5px;}
   label:first-of-type { margin-top: 0; }
-  input, select { width: 100%; padding: 12px 14px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 15px; font-family: inherit; }
-  input:focus, select:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+  input, select { 
+    width: 100%; 
+    padding: 14px 16px; 
+    background: #090e17; 
+    border: 1px solid #334155; 
+    border-radius: 8px; 
+    font-size: 15px; 
+    font-family: inherit; 
+    color: #f8fafc;
+    transition: all 0.2s;
+  }
+  input:focus, select:focus { 
+    outline: none; 
+    border-color: #22c55e; 
+    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2); 
+  }
 
-  .quote-box { background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 10px; padding: 16px; margin-top: 20px; display: none; }
+  /* QUOTE BOX */
+  .quote-box { 
+    background: rgba(34, 197, 94, 0.05); 
+    border: 1px solid #22c55e; 
+    border-radius: 10px; 
+    padding: 20px; 
+    margin-top: 24px; 
+    display: none; 
+    text-align: center;
+  }
   .quote-box.show { display: block; }
-  .quote-box .amount { font-size: 28px; font-weight: 800; color: #16a34a; }
-  .quote-box .label { font-size: 13px; color: #166534; margin-bottom: 4px; }
+  .quote-box .amount { font-family: 'Bangers', cursive; font-size: 42px; color: #22c55e; letter-spacing: 1px; text-shadow: 0 0 15px rgba(34, 197, 94, 0.4); }
+  .quote-box .label { font-size: 14px; color: #94a3b8; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px;}
 
   .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
   @media (max-width: 600px) { .grid-2 { grid-template-columns: 1fr; } }
 
-  button { width: 100%; padding: 16px; background: linear-gradient(135deg, #1e40af, #3b82f6); color: #fff; border: none; border-radius: 10px; font-size: 17px; font-weight: 700; cursor: pointer; margin-top: 24px; }
-  button:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(59,130,246,0.35); }
-  button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+  /* BUTTON */
+  button { 
+    width: 100%; 
+    padding: 18px; 
+    background: #22c55e; 
+    color: #000; 
+    border: none; 
+    border-radius: 8px; 
+    font-size: 18px; 
+    font-weight: 800; 
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer; 
+    margin-top: 28px; 
+    transition: all 0.2s;
+    box-shadow: 0 0 20px rgba(34, 197, 94, 0.3);
+  }
+  button:hover { 
+    background: #16a34a; 
+    transform: translateY(-2px); 
+    box-shadow: 0 0 30px rgba(34, 197, 94, 0.6); 
+  }
+  button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none;}
 
-  .msg { padding: 16px; border-radius: 10px; margin-top: 16px; display: none; font-size: 15px; }
+  /* MESSAGES & SUCCESS SCREEN */
+  .msg { padding: 16px; border-radius: 8px; margin-top: 16px; display: none; font-size: 15px; font-weight: 600; }
   .msg.show { display: block; }
-  .msg.error { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+  .msg.error { background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid #ef4444; }
 
   .success-screen { text-align: center; padding: 40px 20px; }
-  .success-screen .check { width: 64px; height: 64px; background: #16a34a; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; color: #fff; font-size: 32px; font-weight: bold; }
-  .success-screen h2 { font-size: 26px; margin-bottom: 12px; }
-  .success-screen p { color: #64748b; margin-bottom: 8px; }
-  .success-screen .ref { font-family: monospace; background: #f1f5f9; padding: 8px 16px; border-radius: 8px; margin-top: 20px; display: inline-block; font-size: 13px; }
+  .success-screen .check { 
+    width: 80px; height: 80px; 
+    background: rgba(34, 197, 94, 0.1); 
+    border: 2px solid #22c55e;
+    border-radius: 50%; 
+    display: flex; align-items: center; justify-content: center; 
+    margin: 0 auto 24px; 
+    color: #22c55e; font-size: 40px; 
+    box-shadow: 0 0 30px rgba(34, 197, 94, 0.4);
+  }
+  .success-screen h2 { font-family: 'Bangers', cursive; font-size: 36px; letter-spacing: 1px; margin-bottom: 12px; color: #22c55e;}
+  .success-screen p { color: #94a3b8; margin-bottom: 8px; }
+  .success-screen .ref { 
+    font-family: monospace; 
+    background: #090e17; 
+    padding: 10px 20px; 
+    border-radius: 8px; 
+    margin-top: 24px; 
+    display: inline-block; 
+    font-size: 14px; 
+    color: #eab308;
+    border: 1px solid #334155;
+  }
 
-  footer { text-align: center; padding: 40px 24px; color: #94a3b8; font-size: 14px; }
+  footer { text-align: center; padding: 40px 24px; color: #475569; font-size: 13px; border-top: 1px solid #1e293b; }
 </style>
 </head>
 <body>
 
 <header>
   <div class="container">
-    <div class="logo">Cash<span>Card</span></div>
+    <!-- Make sure you saved the image you uploaded as logo.png in your cashcard-api folder! -->
+    <a href="/"><img src="/logo.png" alt="Gift & Cash Card"></a>
     <nav>
       <a href="#sell">Sell a Card</a>
       <a href="/admin">Admin</a>
@@ -178,7 +336,7 @@
 
 </div>
 
-<footer>© 2026 CashCard. All rights reserved. | Secure gift card trading.</footer>
+<footer>© 2026 Sell Gift Card Cash. All rights reserved.</footer>
 
 <script>
   const $ = (id) => document.getElementById(id);
@@ -252,7 +410,7 @@
       $('sell').style.display = 'none';
       $('detailCard').style.display = 'none';
       $('successCard').style.display = 'block';
-      $('refId').textContent = 'Reference: ' + json.submissionId;
+      $('refId').textContent = 'Ref: ' + json.submissionId;
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
       errBox.textContent = 'Error: ' + err.message;
@@ -262,6 +420,5 @@
     }
   }
 </script>
-
 </body>
 </html>
