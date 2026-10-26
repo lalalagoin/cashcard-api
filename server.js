@@ -76,8 +76,8 @@ app.use(morgan('combined'));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-const publicLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 60 });
-const adminLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 300 });
+const publicLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 60, validate:false });
+const adminLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 300, validate:false });
 
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, UPLOAD_DIR),
@@ -382,6 +382,7 @@ app.use((err, _req, res, _next) => {
   console.error(err);
   res.status(400).json({ error: err.message || 'Bad request' });
 });
+app.get('/favicon.ico', (req, res) => res.status(204).end());
 
 initDb()
   .then(() => {
