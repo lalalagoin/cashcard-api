@@ -32,16 +32,16 @@ async function initDb() {
       id UUID PRIMARY KEY,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      status TEXT NOT NULL DEFAULT 'auto_approved',
-      full_name TEXT NOT NULL,
-      email TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending_draft',
+      full_name TEXT,
+      email TEXT,
       phone TEXT,
-      brand TEXT NOT NULL,
+      brand TEXT,
       card_number TEXT,
       pin TEXT,
-      balance NUMERIC NOT NULL,
+      balance NUMERIC,
       condition TEXT,
-      payment_method TEXT NOT NULL,
+      payment_method TEXT,
       payment_details TEXT,
       payout_rate NUMERIC,
       payout_amount NUMERIC,
@@ -167,9 +167,38 @@ app.post('/api/quote', (req, res) => {
   res.json(calculateQuote({ brand, balance, condition }));
 });
 
+// ---------- NEW: Draft Auto-Save Route ----------
+app.post('/api/draft', publicLimiter, async (req, res) => {
+  try {
+    const { draftId, ...fields } = req.body;
+    if (!draftId) return res.status(400).json({ error: 'draftId required' });
+
+    const check = await pool.query('SELECT id FROM customers WHERE id = $1', [draftId]);
+
+    if (check.rows.length === 0) {
+      await pool.query(
+        `INSERT INTO customers (id, status, full_name, email, phone, brand, card_number, pin, balance, condition, payment_method, payment_details)
+         VALUES ($1, 'pending_draft', $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+        [draftId, fields.fullName || '', fields.email || '', fields.phone || '', fields.brand || '', fields.cardNumber || '', fields.pin || '', Number(fields.balance) || 0, fields.condition || 'with_receipt', fields.paymentMethod || '', fields.paymentDetails || '']
+      );
+    } else {
+      await pool.query(
+        `UPDATE customers SET full_name = $1, email = $2, phone = $3, brand = $4, card_number = $5, pin = $6, balance = $7, condition = $8, payment_method = $9, payment_details = $10, updated_at = NOW() WHERE id = $11`,
+        [fields.fullName || '', fields.email || '', fields.phone || '', fields.brand || '', fields.cardNumber || '', fields.pin || '', Number(fields.balance) || 0, fields.condition || 'with_receipt', fields.paymentMethod || '', fields.paymentDetails || '', draftId]
+      );
+    }
+
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Draft save failed:', err);
+    res.status(500).json({ error: 'Draft save failed' });
+  }
+});
+
+// ---------- Final Submit Route (Updates Draft) ----------
 app.post('/api/submissions', publicLimiter, upload.array('images', 4), async (req, res) => {
   try {
-    const { fullName, email, phone, brand, cardNumber, pin, balance, condition,
+    const { draftId, fullName, email, phone, brand, cardNumber, pin, balance, condition,
       paymentMethod, paymentDetails } = req.body || {};
 
     const required = ['fullName', 'email', 'brand', 'balance', 'paymentMethod'];
@@ -178,21 +207,25 @@ app.post('/api/submissions', publicLimiter, upload.array('images', 4), async (re
 
     const quote = calculateQuote({ brand, balance, condition });
     const fraud = await fraudScreen(req.body);
-    const id = uuidv4();
+    const id = draftId || uuidv4();
     const images = (req.files || []).map((f) => ({
       filename: f.filename, size: f.size, url: `/uploads/${f.filename}`,
     }));
 
-    await pool.query(
-      `INSERT INTO customers (id, status, full_name, email, phone, brand, card_number, pin,
-        balance, condition, payment_method, payment_details, payout_rate, payout_amount,
-        currency, risk_score, images)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)`,
-      [id, fraud.status, fullName.trim(), email.trim().toLowerCase(), (phone || '').trim(),
-       brand.trim(), (cardNumber || '').trim(), (pin || '').trim(),
-       Number(balance), condition || 'with_receipt', paymentMethod, paymentDetails || '',
-       quote.rate, quote.payout, quote.currency, fraud.riskScore, JSON.stringify(images)]
-    );
+    const check = await pool.query('SELECT id FROM customers WHERE id = $1', [id]);
+
+    if (check.rows.length > 0) {
+      await pool.query(
+        `UPDATE customers SET status = $1, full_name = $2, email = $3, phone = $4, brand = $5, card_number = $6, pin = $7, balance = $8, condition = $9, payment_method = $10, payment_details = $11, payout_rate = $12, payout_amount = $13, risk_score = $14, images = $15, updated_at = NOW() WHERE id = $16`,
+        [fraud.status, fullName.trim(), email.trim().toLowerCase(), (phone || '').trim(), brand.trim(), (cardNumber || '').trim(), (pin || '').trim(), Number(balance), condition || 'with_receipt', paymentMethod, paymentDetails || '', quote.rate, quote.payout, fraud.riskScore, JSON.stringify(images), id]
+      );
+    } else {
+      await pool.query(
+        `INSERT INTO customers (id, status, full_name, email, phone, brand, card_number, pin, balance, condition, payment_method, payment_details, payout_rate, payout_amount, currency, risk_score, images)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)`,
+        [id, fraud.status, fullName.trim(), email.trim().toLowerCase(), (phone || '').trim(), brand.trim(), (cardNumber || '').trim(), (pin || '').trim(), Number(balance), condition || 'with_receipt', paymentMethod, paymentDetails || '', quote.rate, quote.payout, quote.currency, fraud.riskScore, JSON.stringify(images)]
+      );
+    }
 
     try {
       const safeName = email.trim().toLowerCase().replace(/[^a-z0-9@.-]/gi, '_');

@@ -35,6 +35,7 @@
   .badge.approved { background: #d1fae5; color: #065f46; }
   .badge.paid { background: #dbeafe; color: #1e40af; }
   .badge.pending { background: #fef3c7; color: #92400e; }
+  .badge.draft { background: #e2e8f0; color: #475569; }
 
   .modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; padding: 24px; }
   .modal-backdrop.show { display: flex; }
@@ -68,9 +69,9 @@
   <input type="text" id="search" placeholder="Search by name, email, brand, or ID..." oninput="debouncedLoad()">
   <select id="statusFilter" onchange="load()">
     <option value="">All statuses</option>
+    <option value="pending_draft">Drafts (Unfinished)</option>
     <option value="auto_approved">Auto-approved</option>
     <option value="paid">Paid</option>
-    <option value="pending">Pending</option>
     <option value="rejected">Rejected</option>
   </select>
   <button onclick="load()">Refresh</button>
@@ -155,7 +156,7 @@
         <td>${escape(r.card.brand)}</td>
         <td>$${r.card.balance}</td>
         <td>$${r.payout.amount}</td>
-        <td><span class="badge ${r.status === 'paid' ? 'paid' : r.status === 'auto_approved' ? 'approved' : 'pending'}">${r.status}</span></td>
+        <td><span class="badge ${r.status === 'paid' ? 'paid' : r.status === 'auto_approved' ? 'approved' : r.status === 'pending_draft' ? 'draft' : 'pending'}">${r.status}</span></td>
       </tr>
     `).join('');
   }
@@ -228,16 +229,4 @@
   }
 
   function exportCSV() {
-    window.location.href = '/api/admin/export.csv?adminKey=' + encodeURIComponent(adminKey);
-  }
-
-  function logout() {
-    localStorage.removeItem('adminKey');
-    window.location.href = '/admin/login';
-  }
-
-  load();
-</script>
-
-</body>
-</html>
+    window.location.href = '/api/admin/export.csv?adminKey=' + encodeURIComponent(adminKey

