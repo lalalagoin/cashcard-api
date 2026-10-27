@@ -77,6 +77,7 @@
   <button onclick="load()">Refresh</button>
   <button class="export" onclick="exportCSV()">Export CSV</button>
 </div>
+  <button onclick="clearAllData()" style="background:#ef4444;">Clear All Data</button>
 
 <div class="stats" id="stats">
   <div class="stat"><div class="label">Total Customers</div><div class="value" id="statTotal">—</div></div>
@@ -208,7 +209,28 @@
         body: JSON.stringify({ paid: true, status: 'paid' })
       });
       closeModal();
+       async function clearAllData() {
+    if (!confirm("Are you sure you want to delete EVERY record? This cannot be undone.")) return;
+    
+    // First, fetch all IDs
+    try {
+      const res = await fetch('/api/admin/customers?limit=200', { headers: { 'x-admin-key': adminKey } });
+      const data = await res.json();
+      
+      // Loop through and delete each one
+      for (const record of data.data) {
+        await fetch('/api/admin/customers/' + record.id, { 
+          method: 'DELETE', 
+          headers: { 'x-admin-key': adminKey } 
+        });
+      }
+      
+      alert("All data cleared!");
       load();
+    } catch (e) {
+      alert("Error clearing data");
+    }
+  } load();
     } catch (e) { alert('Error: ' + e.message); }
   }
 
