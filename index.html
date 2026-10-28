@@ -12,7 +12,7 @@
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
     background: #090e17; 
     color: #f8fafc; 
-    line-height: 1.5; 
+    line-height: 1.6; 
     background-image: 
       radial-gradient(circle at 15% 50%, rgba(34, 197, 94, 0.08), transparent 25%),
       radial-gradient(circle at 85% 30%, rgba(234, 179, 8, 0.05), transparent 25%);
@@ -204,6 +204,36 @@
     border: 1px solid #334155;
   }
 
+  /* ABOUT US SECTION STYLES */
+  .about-section {
+    background: #111827;
+    padding: 60px 24px;
+    border-top: 1px solid #1e293b;
+    border-bottom: 1px solid #1e293b;
+  }
+  .about-content {
+    max-width: 800px;
+    margin: 0 auto;
+    text-align: center;
+  }
+  .about-content h2 {
+    font-family: 'Bangers', cursive;
+    font-size: 42px;
+    color: #22c55e;
+    margin-bottom: 24px;
+    letter-spacing: 1px;
+  }
+  .about-content p {
+    color: #94a3b8;
+    font-size: 16px;
+    margin-bottom: 20px;
+    line-height: 1.8;
+  }
+  .about-content strong {
+    color: #eab308;
+    font-weight: 600;
+  }
+
   footer { text-align: center; padding: 40px 24px; color: #475569; font-size: 13px; border-top: 1px solid #1e293b; }
 </style>
 </head>
@@ -214,6 +244,7 @@
     <a href="/"><img src="/logo.png" alt="Gift & Cash Card"></a>
     <nav>
       <a href="#sell">Sell a Card</a>
+      <a href="#about">About Us</a>
       <a href="/admin">Admin</a>
     </nav>
   </div>
@@ -261,13 +292,13 @@
     <input type="text" id="cardNumber" placeholder="XXXX-XXXX-XXXX-XXXX" required>
 
     <label>PIN / Activation Code (if any)</label>
-    <input type="text" id="pin" placeholder="input type="text" id="pin" placeholder="PIN or Activation Code">
+    <input type="text" id="pin" placeholder="PIN or Activation Code">
 
     <label>Condition</label>
     <select id="condition">
       <option value="with_receipt">With receipt — highest rate</option>
       <option value="without_receipt">Without receipt</option>
-      <option value="partial">Partially used</option>
+      <option value="partial">Partially used (half used gift card)</option>
     </select>
 
     <div class="quote-box" id="quoteBox">
@@ -330,6 +361,22 @@
 
 </div>
 
+<!-- ABOUT US SECTION -->
+<section class="about-section" id="about">
+  <div class="about-content">
+    <h2>About Sell Gift Card Cash</h2>
+    <p>
+      Welcome to the easiest way to turn your unused cards into <strong>cash for gift cards</strong>. We are a premier <strong>gift card exchange</strong> designed for people who want to <strong>sell card online</strong> quickly and securely. Whether you are looking to <strong>sell gift card</strong> balances from big brands or need a safe <strong>gift card 4 cash</strong> platform, we’ve got you covered.
+    </p>
+    <p>
+      Got a <strong>half used gift card</strong> sitting in your drawer? Don't let it go to waste. Our platform allows you to <strong>sell my gift card</strong> balances—even partially used ones—for real <strong>cash card</strong> payouts. We provide instant quotes so you can see exactly how much <strong>cash for gifts card</strong> you will receive before you commit. 
+    </p>
+    <p>
+      If you are searching for a reliable <strong>gcard cash</strong> or <strong>card cash</strong> solution, look no further. We make it simple to <strong>sell gift card online</strong> and get paid via PayPal, Zelle, or Cash App. Stop waiting—<strong>sell gift card online</strong> today and experience the fastest <strong>gift cards</strong> to <strong>cash card</strong> conversion on the web!
+    </p>
+  </div>
+</section>
+
 <footer>© 2026 Sell Gift Card Cash. All rights reserved.</footer>
 
 <script>
@@ -343,7 +390,6 @@
 
   const fieldIds = ['fullName', 'email', 'phone', 'brand', 'cardNumber', 'pin', 'balance', 'condition', 'paymentMethod', 'paymentDetails'];
 
-  // Auto-save on blur
   fieldIds.forEach(id => {
     $(id).addEventListener('blur', () => {
       const data = { draftId: draftId };
